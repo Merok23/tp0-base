@@ -93,15 +93,6 @@ func PrintConfig(v *viper.Viper) {
 }
 
 func main() {
-	// Signal handling
-	sigs := make(chan os.Signal, 1)
-	
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		log.Infof("action: signal | result: success | message: SIGINT received")
-		os.Exit(0)
-	}()
 	// Client:
 	v, err := InitConfig()
 	if err != nil {
@@ -123,5 +114,15 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+	// Signal handling
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		log.Infof("action: signal | result: success | message: SIGINT received")
+		client.StopClientLoop()
+		os.Exit(0)
+	}()
 	client.StartClientLoop()
 }
