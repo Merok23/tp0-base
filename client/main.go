@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+    "os/signal" // <- PREGUNTAR: Esto se puede usar?
+	"syscall" // <- PREGUNTAR: Esto se puede usar?
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -91,6 +93,16 @@ func PrintConfig(v *viper.Viper) {
 }
 
 func main() {
+	// Signal handling
+	sigs := make(chan os.Signal, 1)
+	
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		log.Infof("action: signal | result: success | message: SIGINT received")
+		os.Exit(0)
+	}()
+	// Client:
 	v, err := InitConfig()
 	if err != nil {
 		log.Criticalf("%s", err)
