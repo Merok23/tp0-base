@@ -3,12 +3,15 @@ services:
   server:
     container_name: server
     image: server:latest
-    entrypoint: python3 /main.py
+    entrypoint: python3 server/main.py
     environment:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server:/server
+
   client0:
     container_name: client0
     image: client:latest
@@ -20,6 +23,8 @@ services:
         - testing_net
     depends_on:
         - server
+    volumes:
+      - ./client:/config
 
   client1:
     container_name: client1
@@ -32,6 +37,8 @@ services:
         - testing_net
     depends_on:
         - server
+    volumes:
+      - ./client:/config
 
 networks:
   testing_net:

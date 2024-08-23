@@ -1,0 +1,1 @@
+docker volume rm $(docker volume ls -q -f name=tp0_)
