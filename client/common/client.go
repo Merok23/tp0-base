@@ -3,6 +3,7 @@ package common
 import (
 	"bufio"
 	"fmt"
+	"encoding/binary" // <- PREGUNTAR: Esto se puede usar?
 	"net"
 	"time"
 
@@ -47,6 +48,11 @@ func (c *Client) createClientSocket() error {
 		)
 	}
 	c.conn = conn
+	log.Infof(
+		"action: connect | result: success | client_id: %v | server_address: %v",
+		c.config.ID,
+		c.config.ServerAddress,
+	)
 	return nil
 }
 
@@ -58,14 +64,36 @@ func (c *Client) StartClientLoop() {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
+		// Send the size (4 bytes)
+		msg := fmt.Sprintf("[CLIENT %v] Message N°%v\n", c.config.ID, msgID)
+		size := len(msg)
+		log.Infof("action: send_size | result: success | client_id: %v | size: %v", c.config.ID, size)
+
+		// Send the message size as bytes
+		sizeBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(sizeBytes, uint32(size))
+		c.conn.Write(sizeBytes)
+
+		// Send the message
+		fmt.Fprintf(c.conn, "%s", msg)
+		log.Infof("action: send_size | result: success | client_id: %v | size: %v", c.config.ID, size)
+
+		// Read the response from the server
+		response, err := bufio.NewReader(c.conn).ReadString('\n')
+		if err != nil {
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
+		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
 			c.config.ID,
-			msgID,
+			response,
 		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
+
+		// Close the connection
 		c.conn.Close()
 
 		if err != nil {
