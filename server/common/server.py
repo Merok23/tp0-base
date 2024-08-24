@@ -30,9 +30,13 @@ class Server:
         """
         Handle server shutdown gracefully
         """
-        logging.info("action: shutdown_server | result: in_progress")
+        logging.info(
+            "action: shutdown_server | result: in_progress | frame: %s",
+            frame.f_code.co_name
+        )
         self._server_socket.close()
-        logging.info("action: shutdown_server | result: success")
+        sig_name = signal.Signals(signum)
+        logging.info("action: shutdown_server | result: success | %s", sig_name.name)
         sys.exit(0)
 
     def __handle_client_connection(self, client_sock):
