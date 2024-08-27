@@ -91,7 +91,11 @@ class Protocol:
         Send message code to the client
         """
         logging.info("action: send_message_code | result: in_progress | code: %d", code)
-        SocketTCP.send_all(client_sock, CODE_SIZE, code.to_bytes(CODE_SIZE, byteorder='big'))
+        SocketTCP.send_all(
+            client_sock,
+            CODE_SIZE,
+            code.to_bytes(CODE_SIZE, byteorder='big', signed=False)
+        )
 
     @staticmethod
     def __send_message_size(client_sock: socket, size: int) -> None:
@@ -99,4 +103,8 @@ class Protocol:
         Send message size to the client
         """
         logging.info("action: send_message_size | result: in_progress | size: %d", size)
-        SocketTCP.send_all(client_sock, SIZE_SIZE, size.to_bytes(SIZE_SIZE, byteorder='big'))
+        SocketTCP.send_all(
+            client_sock,
+            SIZE_SIZE,
+            size.to_bytes(SIZE_SIZE, byteorder='big', signed=False)
+        )
