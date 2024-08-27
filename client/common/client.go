@@ -2,12 +2,12 @@ package common
 
 import (
 	"bufio"
-	"fmt"
-	"encoding/binary" // <- PREGUNTAR: Esto se puede usar?
 	"net"
 	"time"
+	"strconv" // <- PREGUNTAR: Esto se puede usar?
 
 	"github.com/op/go-logging"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/protocol"
 )
 
 var log = logging.MustGetLogger("log")
@@ -64,19 +64,15 @@ func (c *Client) StartClientLoop() {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
-		// Send the size (4 bytes)
-		msg := fmt.Sprintf("[CLIENT %v] Message N°%v\n", c.config.ID, msgID)
-		size := len(msg)
-		log.Infof("action: send_size | result: success | client_id: %v | size: %v", c.config.ID, size)
-
-		// Send the message size as bytes
-		sizeBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(sizeBytes, uint32(size))
-		c.conn.Write(sizeBytes)
-
-		// Send the message
-		fmt.Fprintf(c.conn, "%s", msg)
-		log.Infof("action: send_size | result: success | client_id: %v | size: %v", c.config.ID, size)
+		id, err := strconv.Atoi(c.config.ID)
+		if err != nil {
+			log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		protocol.SendMsg(c.conn, id, msgID)
 
 		// Read the response from the server
 		response, err := bufio.NewReader(c.conn).ReadString('\n')
@@ -103,12 +99,6 @@ func (c *Client) StartClientLoop() {
 			)
 			return
 		}
-
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
-
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
 
