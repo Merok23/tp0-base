@@ -67,3 +67,15 @@ class SocketTCP:
             chunks.append(chunk)
             received += len(chunk)
         return b''.join(chunks) # Encoded message
+
+    @staticmethod
+    def send_all(client_sock: socket, size: int, message: bytes) -> None:
+        """
+        Send message to the client (and handle short writes)
+        """
+        totalsent = 0
+        while totalsent < size:
+            sent = client_sock.send(message[totalsent:])
+            if sent == 0:
+                raise RuntimeError("socket connection broken")
+            totalsent += sent

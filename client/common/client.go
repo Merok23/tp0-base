@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bufio"
 	"net"
 	"time"
 	"strconv" // <- PREGUNTAR: Esto se puede usar?
@@ -75,7 +74,7 @@ func (c *Client) StartClientLoop() {
 		protocol.SendMsg(c.conn, id, msgID)
 
 		// Read the response from the server
-		response, err := bufio.NewReader(c.conn).ReadString('\n')
+		response, err := protocol.ReceiveMsg(c.conn, id)
 		if err != nil {
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,

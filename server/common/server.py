@@ -4,6 +4,7 @@ import signal
 import sys
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
+from common.codes import ECHO_MESSAGE
 
 
 
@@ -48,14 +49,17 @@ class Server:
         """
         try:
             msg = Protocol.receive_client_message(client_sock)
-            addr = client_sock.getpeername()
-            logging.info(
-                'action: receive_message | result: success | ip: %s | msg: %s',
-                addr[0],
-                msg,
-            )
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            if msg['code'] == ECHO_MESSAGE:
+                msg = msg['message']
+                addr = client_sock.getpeername()
+                logging.info(
+                    'action: receive_message | result: success | ip: %s | msg: %s',
+                    addr[0],
+                    msg,
+                )
+                Protocol.send_echo_response(client_sock, msg)
+        except ValueError as e:
+            logging.error("action: receive_message | result: fail | error: %s", format(e))
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         finally:
