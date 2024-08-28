@@ -1,4 +1,4 @@
-from server.common.utils import *
+from common.utils import *
 import os
 import unittest
 
