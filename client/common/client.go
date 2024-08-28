@@ -47,11 +47,6 @@ func (c *Client) createClientSocket() error {
 		)
 	}
 	c.conn = conn
-	log.Infof(
-		"action: connect | result: success | client_id: %v | server_address: %v",
-		c.config.ID,
-		c.config.ServerAddress,
-	)
 	return nil
 }
 
