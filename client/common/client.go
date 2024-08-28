@@ -3,7 +3,8 @@ package common
 import (
 	"net"
 	"time"
-	"strconv" // <- PREGUNTAR: Esto se puede usar?
+	"strconv"
+	"os"
 
 	"github.com/op/go-logging"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/protocol"
@@ -50,54 +51,73 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+	c.createClientSocket()
 
-		id, err := strconv.Atoi(c.config.ID)
-		if err != nil {
-			log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-		protocol.SendMsg(c.conn, id, msgID)
+	id, err := strconv.Atoi(c.config.ID)
+	if err != nil {
+		log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+	dni, err := strconv.Atoi(os.Getenv("DNI"))
+	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+	if err != nil {
+		log.Errorf(
+			"action: convert | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+	name := os.Getenv("NOMBRE")
+	lastname := os.Getenv("APELLIDO")
+	dateOfBirth := os.Getenv("NACIMIENTO")
+	// Send the message
+	_, err = protocol.SendBet(c.conn, id, dni, name, lastname, dateOfBirth, number)
 
-		// Read the response from the server
-		response, err := protocol.ReceiveMsg(c.conn, id)
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
+	if err != nil {
+		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
+	response, err := protocol.ReceiveBet(c.conn)
+	if err != nil {
+		log.Errorf("action: receive_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+
+	if response != protocol.CODE_SUCCESS {
+		log.Errorf("action: receive_bet | result: fail | client_id: %v | response: %v",
 			c.config.ID,
 			response,
 		)
-
-		// Close the connection
-		c.conn.Close()
-
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
-
+		return
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+	log.Infof(
+		"action: apuesta_enviada | result: success | dni: %v | numero: %v",
+		dni,
+		number,
+	)
+	// Close the connection
+	c.conn.Close()
+
+	if err != nil {
+		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
 }
 
 func (c *Client) StopClientLoop() {

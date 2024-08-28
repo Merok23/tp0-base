@@ -19,6 +19,11 @@ services:
     environment:
         - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=0
+        - DNI=30904465
+        - NOMBRE=Santiago Lionel
+        - APELLIDO=Lorca
+        - NACIMIENTO=1999-03-17
+        - NUMERO=7574
     networks:
         - testing_net
     depends_on:

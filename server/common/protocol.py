@@ -4,10 +4,12 @@ Module dedicating to encoding and encapsulating messages
 """
 import socket
 from common.socket_tcp import SocketTCP
-from common.codes import ECHO_MESSAGE
+from common.codes import ECHO_MESSAGE, BET_MESSAGE
+from common.codes import SUCCESS_CODE, ERROR_CODE
 
 CODE_SIZE = 4
 SIZE_SIZE = 4
+DATE_OF_BIRTH_SIZE = 10
 
 class Protocol:
     """
@@ -19,20 +21,42 @@ class Protocol:
     ###################
 
     @staticmethod
+    def __receive_bet(client_sock: socket) -> dict:
+        """
+        Receive bet message from the client
+        """
+        dni = Protocol.__receive_uint32(client_sock)
+        number = Protocol.__receive_uint32(client_sock)
+        date_of_birth = SocketTCP.receive_all(client_sock, DATE_OF_BIRTH_SIZE)
+        name = Protocol.__receive_variable_string(client_sock)
+        lastname = Protocol.__receive_variable_string(client_sock)
+        return {
+            "code": BET_MESSAGE,
+            "dni": str(dni),
+            "number": str(number),
+            "date_of_birth": str(date_of_birth, 'utf-8'),   
+            "name": name,   
+            "lastname": lastname
+        }
+
+    @staticmethod
     def receive_client_message(client_sock: socket) -> dict:
         """
-        Receive message from the client (and handle short reads)
+        Receive message from the client
         """
-        code = Protocol.__receive_message_code(client_sock)
+        code = Protocol.__receive_uint32(client_sock)
         if code == ECHO_MESSAGE:
+            message = Protocol.__receive_variable_string(client_sock)
             return {
                 "code": code,
-                "message": Protocol.__receive_message(client_sock),
+                "message": message
             }
+        if code == BET_MESSAGE:
+            return Protocol.__receive_bet(client_sock)
         raise ValueError("Invalid code")
 
     @staticmethod
-    def __receive_message(client_sock: socket) -> str:
+    def __receive_variable_string(client_sock: socket) -> str:
         """
         Receive message from the client
         """
@@ -40,7 +64,7 @@ class Protocol:
         return SocketTCP.receive_all(client_sock, size).decode('utf-8')
 
     @staticmethod
-    def __receive_message_code(client_sock: socket) -> int:
+    def __receive_uint32(client_sock: socket) -> int:
         """
         Receive message code from the client
         """
@@ -66,8 +90,21 @@ class Protocol:
         """
         Send echo response to the client
         """
-        Protocol.__send_message_code(client_sock, ECHO_MESSAGE)
         Protocol.__send_message(client_sock, message)
+
+    @staticmethod
+    def send_bet_response_succesful(client_sock: socket) -> None:
+        """
+        Send bet response to the client
+        """
+        Protocol.__send_message_code(client_sock, SUCCESS_CODE)
+
+    @staticmethod
+    def send_bet_response_error(client_sock: socket) -> None:
+        """
+        Send bet response to the client
+        """
+        Protocol.__send_message_code(client_sock, ERROR_CODE)
 
     @staticmethod
     def __send_message(client_sock: socket, message: str) -> None:

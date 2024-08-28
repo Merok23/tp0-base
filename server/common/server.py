@@ -4,7 +4,9 @@ import signal
 import sys
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
-from common.codes import ECHO_MESSAGE
+from common.codes import ECHO_MESSAGE, BET_MESSAGE
+from common.utils import Bet
+from common.utils import store_bets
 
 
 
@@ -50,20 +52,43 @@ class Server:
         try:
             msg = Protocol.receive_client_message(client_sock)
             if msg['code'] == ECHO_MESSAGE:
-                msg = msg['message']
-                addr = client_sock.getpeername()
-                logging.info(
-                    'action: receive_message | result: success | ip: %s | msg: %s',
-                    addr[0],
-                    msg,
-                )
-                Protocol.send_echo_response(client_sock, msg)
+                self.__handle_echo(client_sock, msg)
+            if msg['code'] == BET_MESSAGE:
+                self.__handle_bet(client_sock, msg)
         except ValueError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         finally:
             client_sock.close()
+
+    def __handle_bet(self, client_sock: socket, msg: dict) -> None:
+        """
+        Handle bet request from the client
+        """
+        bet = Bet(
+            1, # agency
+            msg['name'],
+            msg['lastname'],
+            msg['dni'],
+            msg['date_of_birth'],
+            msg['number'],
+        )
+        store_bets([bet])
+        Protocol.send_bet_response_succesful(client_sock)
+
+    def __handle_echo(self, client_sock: socket, msg: dict) -> None:
+        """
+        Handle echo request from the client
+        """
+        msg = msg['message']
+        addr = client_sock.getpeername()
+        logging.info(
+            'action: receive_message | result: success | ip: %s | msg: %s',
+            addr[0],
+            msg,
+        )
+        Protocol.send_echo_response(client_sock, msg)
 
     def __accept_new_connection(self):
         """
