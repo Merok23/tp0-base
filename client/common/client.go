@@ -5,6 +5,8 @@ import (
 	"time"
 	"strconv"
 	"os"
+	"bufio"
+	"strings"
 
 	"github.com/op/go-logging"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/protocol"
@@ -52,31 +54,57 @@ func (c *Client) createClientSocket() error {
 }
 
 func (c *Client) StartClientLoop() {
-	c.createClientSocket()
-
 	id, err := strconv.Atoi(c.config.ID)
 	if err != nil {
 		log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
-	dni, err := strconv.Atoi(os.Getenv("DNI"))
-	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+		c.config.ID,
+		err,
+	)
+	return
+}
+file := os.Getenv("FILE")
+f, err := os.Open(file)
 	if err != nil {
-		log.Errorf(
-			"action: convert | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
+		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v",
+		c.config.ID,
+		err,
 		)
 		return
 	}
-	name := os.Getenv("NOMBRE")
-	lastname := os.Getenv("APELLIDO")
-	dateOfBirth := os.Getenv("NACIMIENTO")
-	// Send the message
-	_, err = protocol.SendBet(c.conn, id, dni, name, lastname, dateOfBirth, number)
+	defer f.Close()
+	
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		c.createClientSocket()
+		line := scanner.Text()
+		data := strings.Split(line, ",")
+		name := data[0]
+		lastname := data[1]
+		dni, err := strconv.Atoi(data[2])
+		dateOfBirth := data[3]
+		number, err := strconv.Atoi(data[4])
+		if err != nil {
+			log.Errorf("action: convert_data | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		_, err = protocol.SendBet(c.conn, id, dni, name, lastname, dateOfBirth, number)
+		if err != nil {
+			log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		log.Infof(
+			"action: apuesta_enviada | result: success | dni: %v | numero: %v",
+			dni,
+			number,
+		)
+		c.conn.Close()
+	}
 
 	if err != nil {
 		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
@@ -103,13 +131,6 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	log.Infof(
-		"action: apuesta_enviada | result: success | dni: %v | numero: %v",
-		dni,
-		number,
-	)
-	// Close the connection
-	c.conn.Close()
 
 	if err != nil {
 		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
