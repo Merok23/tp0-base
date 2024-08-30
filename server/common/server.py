@@ -66,15 +66,27 @@ class Server:
         """
         Handle bet request from the client
         """
-        bet = Bet(
-            1, # agency
-            msg['name'],
-            msg['lastname'],
-            msg['dni'],
-            msg['date_of_birth'],
-            msg['number'],
+        bets = []
+        for bet in msg['bets']:
+            if int(bet['number']) < 0:
+                logging.error(
+                    "action: apuesta_recibida | result: fail | cantidad: %d", len(bets)
+                )
+                Protocol.send_bet_response_error(client_sock)
+                return
+            bets.append(Bet(
+                1, # agency
+                bet['name'],
+                bet['lastname'],
+                bet['dni'],
+                bet['date_of_birth'],
+                bet['number'],
+            ))
+        store_bets(bets)
+        logging.info(
+            "action: apuesta_recibida | result: success | cantidad: %d",
+            len(bets)
         )
-        store_bets([bet])
         Protocol.send_bet_response_succesful(client_sock)
 
     def __handle_echo(self, client_sock: socket, msg: dict) -> None:

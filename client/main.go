@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
-    "os/signal" // <- PREGUNTAR: Esto se puede usar?
-	"syscall" // <- PREGUNTAR: Esto se puede usar?
+    "os/signal"
+	"syscall"
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -111,6 +111,7 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		Batch: 	   	   v.GetInt("batch.maxAmount"),
 	}
 
 	client := common.NewClient(clientConfig)

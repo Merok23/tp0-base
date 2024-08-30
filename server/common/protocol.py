@@ -3,6 +3,7 @@
 Module dedicating to encoding and encapsulating messages
 """
 import socket
+import logging
 from common.socket_tcp import SocketTCP
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
 from common.codes import SUCCESS_CODE, ERROR_CODE
@@ -40,6 +41,22 @@ class Protocol:
         }
 
     @staticmethod
+    def __receive_bets(client_sock: socket) -> dict:
+        """
+        Receive bet message from the client
+        """
+        bets = []
+        bets_size = Protocol.__receive_uint32(client_sock)
+        for _ in range(bets_size):
+            bet = Protocol.__receive_bet(client_sock)
+            bets.append(bet)
+
+        return {
+            "code": BET_MESSAGE,
+            "bets": bets
+        }
+
+    @staticmethod
     def receive_client_message(client_sock: socket) -> dict:
         """
         Receive message from the client
@@ -52,7 +69,7 @@ class Protocol:
                 "message": message
             }
         if code == BET_MESSAGE:
-            return Protocol.__receive_bet(client_sock)
+            return Protocol.__receive_bets(client_sock)
         raise ValueError("Invalid code")
 
     @staticmethod

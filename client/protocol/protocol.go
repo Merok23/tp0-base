@@ -2,9 +2,18 @@ package protocol
 
 import (
 	"fmt"
-	"encoding/binary" // <- PREGUNTAR: Esto se puede usar?
+	"encoding/binary"
 	"net"
 )
+
+
+type Bet struct {
+	Dni int
+	Name string
+	Lastname string
+	DateOfBirth string
+	Number int
+}
 
 const (
 	CODE_ECHO    = 1
@@ -40,38 +49,39 @@ func SendEchoMsg(conn net.Conn,  id int, msgID int) error {
 	return nil
 }
 
-func SendBet(
-	conn net.Conn,
-	id int,
-	dni int,
-	name string,
-	lastname string,
-	dateOfBirth string,
-	number int,
-) (string, error) {
-	// possible performance improvement: send all the data with:
-	// CODE
-	// size of whole message (4 bytes) SeparatorDNI (4 bytes) ... 
-	// Send the code
-	codeBytes := htonl(CODE_BET)
-	conn.Write(codeBytes)
-	dniBytes := htonl(dni)
+func SendBet(conn net.Conn, bet Bet) error {
+	// possible performance improvement (not implemented for time's sake): send all the data with:
+	// Size of whole message (4 bytes) + SizeDNI (4 bytes).. etc (fixed size header) (This can be sent with the code)
+	// And then we send the data in a single write, the server uses the sizes to read the data (payload)
+	dniBytes := htonl(bet.Dni)
 	conn.Write(dniBytes)
-	numberBytes := htonl(number)
+	numberBytes := htonl(bet.Number)
 	conn.Write(numberBytes)
-	dateOfBirthBytes := []byte(dateOfBirth)
+	dateOfBirthBytes := []byte(bet.DateOfBirth)
 	conn.Write(dateOfBirthBytes) // always size 10 (YYYY-MM-DD)
-
-	nameBytes := []byte(name)
+	nameBytes := []byte(bet.Name)
 	nameBytesSize := htonl(len(nameBytes))
 	conn.Write(nameBytesSize)
 	conn.Write(nameBytes)
-
-	lastnameBytes := []byte(lastname)
+	lastnameBytes := []byte(bet.Lastname)
 	lastnameBytesSize := htonl(len(lastnameBytes))
 	conn.Write(lastnameBytesSize)
 	conn.Write(lastnameBytes)
-	return "", nil
+	return nil
+}	
+
+func SendBets(conn net.Conn, bets []Bet) error {
+	codeBytes := htonl(CODE_BET)
+	conn.Write(codeBytes)
+	countBytes := htonl(len(bets))
+	conn.Write(countBytes)
+	for _, bet := range bets {
+		err := SendBet(conn, bet)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func ReceiveBet(conn net.Conn) (uint32, error) {

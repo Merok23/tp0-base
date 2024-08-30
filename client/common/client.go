@@ -20,6 +20,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	Batch         int
 }
 
 // Client Entity that encapsulates how
@@ -53,17 +54,50 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func (c *Client) StartClientLoop() {
-	id, err := strconv.Atoi(c.config.ID)
-	if err != nil {
-		log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
-		c.config.ID,
-		err,
-	)
-	return
+func createBetFromLine(line string) (protocol.Bet, error) {
+	data := strings.Split(line, ",")
+	name := data[0]
+	lastname := data[1]
+	dni, err := strconv.Atoi(data[2])
+	dateOfBirth := data[3]
+	number, err := strconv.Atoi(data[4])
+	bet := protocol.Bet{
+		Dni: dni,
+		Name: name,
+		Lastname: lastname,
+		DateOfBirth: dateOfBirth,
+		Number: number,
+	}
+	return bet, err
 }
-file := os.Getenv("FILE")
-f, err := os.Open(file)
+
+func checkForErrorsBet(response uint32, err error) bool {
+	if err != nil {
+		log.Errorf("action: receive_bet | result: fail | error: %v",
+			err,
+		)
+		return true
+	}
+	if response != protocol.CODE_SUCCESS {
+		log.Errorf("action: receive_bet | result: fail | error: %v",
+			err,
+		)
+		return true
+	}
+	return false
+}
+
+func (c *Client) StartClientLoop() {
+	// id, err := strconv.Atoi(c.config.ID)
+	// if err != nil {
+	// 	log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
+	// 	c.config.ID,
+	// 	err,
+	// )
+	// 	return
+	// }
+	file := os.Getenv("FILE")
+	f, err := os.Open(file)
 	if err != nil {
 		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v",
 		c.config.ID,
@@ -74,70 +108,54 @@ f, err := os.Open(file)
 	defer f.Close()
 	
 	scanner := bufio.NewScanner(f)
+	count := 0
+	bets := []protocol.Bet{}
 	for scanner.Scan() {
-		c.createClientSocket()
 		line := scanner.Text()
-		data := strings.Split(line, ",")
-		name := data[0]
-		lastname := data[1]
-		dni, err := strconv.Atoi(data[2])
-		dateOfBirth := data[3]
-		number, err := strconv.Atoi(data[4])
+		bet, err := createBetFromLine(line)
 		if err != nil {
-			log.Errorf("action: convert_data | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-		_, err = protocol.SendBet(c.conn, id, dni, name, lastname, dateOfBirth, number)
-		if err != nil {
-			log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-		log.Infof(
-			"action: apuesta_enviada | result: success | dni: %v | numero: %v",
-			dni,
-			number,
+			log.Errorf("action: create_bet | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
 		)
+		return
+	}
+	bets = append(bets, bet)
+	count++
+	if count >= c.config.Batch {
+			c.createClientSocket()
+			err = protocol.SendBets(c.conn, bets)
+			if err != nil {
+				log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
+					c.config.ID,
+					err,
+				)
+				return
+			}
+			response, err := protocol.ReceiveBet(c.conn)
+			if checkForErrorsBet(response, err) {
+				return
+			}
+			count = 0
+			bets = []protocol.Bet{}
+			c.conn.Close()
+		}
+	}
+	if count > 0 {
+		c.createClientSocket()
+		err = protocol.SendBets(c.conn, bets)
+		if err != nil {
+			log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		response, err := protocol.ReceiveBet(c.conn)
+		if checkForErrorsBet(response, err) {
+			return
+		}
 		c.conn.Close()
-	}
-
-	if err != nil {
-		log.Errorf("action: send_bet | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
-
-	response, err := protocol.ReceiveBet(c.conn)
-	if err != nil {
-		log.Errorf("action: receive_bet | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
-
-	if response != protocol.CODE_SUCCESS {
-		log.Errorf("action: receive_bet | result: fail | client_id: %v | response: %v",
-			c.config.ID,
-			response,
-		)
-		return
-	}
-
-
-	if err != nil {
-		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
 	}
 }
 
