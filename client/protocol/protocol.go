@@ -13,6 +13,7 @@ type Bet struct {
 	Lastname string
 	DateOfBirth string
 	Number int
+	AgencyNumber int
 }
 
 const (
@@ -59,6 +60,8 @@ func SendBet(conn net.Conn, bet Bet) error {
 	conn.Write(numberBytes)
 	dateOfBirthBytes := []byte(bet.DateOfBirth)
 	conn.Write(dateOfBirthBytes) // always size 10 (YYYY-MM-DD)
+	agencyNumberBytes := htonl(bet.AgencyNumber)
+	conn.Write(agencyNumberBytes)
 	nameBytes := []byte(bet.Name)
 	nameBytesSize := htonl(len(nameBytes))
 	conn.Write(nameBytesSize)

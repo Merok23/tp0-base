@@ -75,7 +75,7 @@ class Server:
                 Protocol.send_bet_response_error(client_sock)
                 return
             bets.append(Bet(
-                1, # agency
+                bet['agency'],
                 bet['name'],
                 bet['lastname'],
                 bet['dni'],

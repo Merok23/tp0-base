@@ -29,6 +29,7 @@ class Protocol:
         dni = Protocol.__receive_uint32(client_sock)
         number = Protocol.__receive_uint32(client_sock)
         date_of_birth = SocketTCP.receive_all(client_sock, DATE_OF_BIRTH_SIZE)
+        agency = Protocol.__receive_uint32(client_sock)
         name = Protocol.__receive_variable_string(client_sock)
         lastname = Protocol.__receive_variable_string(client_sock)
         return {
@@ -37,7 +38,8 @@ class Protocol:
             "number": str(number),
             "date_of_birth": str(date_of_birth, 'utf-8'),   
             "name": name,   
-            "lastname": lastname
+            "lastname": lastname,
+            "agency": agency,
         }
 
     @staticmethod

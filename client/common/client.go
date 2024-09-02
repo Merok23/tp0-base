@@ -54,7 +54,7 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-func createBetFromLine(line string) (protocol.Bet, error) {
+func createBetFromLine(line string, agencyNumber int) (protocol.Bet, error) {
 	data := strings.Split(line, ",")
 	name := data[0]
 	lastname := data[1]
@@ -67,6 +67,7 @@ func createBetFromLine(line string) (protocol.Bet, error) {
 		Lastname: lastname,
 		DateOfBirth: dateOfBirth,
 		Number: number,
+		AgencyNumber: agencyNumber,
 	}
 	return bet, err
 }
@@ -88,15 +89,17 @@ func checkForErrorsBet(response uint32, err error) bool {
 }
 
 func (c *Client) StartClientLoop() {
-	// id, err := strconv.Atoi(c.config.ID)
-	// if err != nil {
-	// 	log.Errorf("action: convert_id | result: fail | client_id: %v | error: %v",
-	// 	c.config.ID,
-	// 	err,
-	// )
-	// 	return
-	// }
 	file := os.Getenv("FILE")
+	agencyNumber := strings.TrimPrefix(file, "/agency-")
+	agencyNumber = strings.TrimSuffix(agencyNumber, ".csv")
+	number, err := strconv.Atoi(agencyNumber)
+	if err != nil {
+		log.Errorf("action: convert_agency_number | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		number = 1
+	}
 	f, err := os.Open(file)
 	if err != nil {
 		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v",
@@ -112,7 +115,7 @@ func (c *Client) StartClientLoop() {
 	bets := []protocol.Bet{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		bet, err := createBetFromLine(line)
+		bet, err := createBetFromLine(line, number)
 		if err != nil {
 			log.Errorf("action: create_bet | result: fail | client_id: %v | error: %v",
 			c.config.ID,
