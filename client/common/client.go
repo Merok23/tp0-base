@@ -160,6 +160,17 @@ func (c *Client) StartClientLoop() {
 		}
 		c.conn.Close()
 	}
+	c.createClientSocket()
+	response, err := protocol.SendEnd(c.conn, number)
+	if err != nil {
+		log.Errorf("action: consulta_ganadores | result: failed")
+		return
+	}
+	log.Infof(
+		"action: consulta_ganadores | result: success | cant_ganadores: %v",
+		response,
+	)
+	c.conn.Close()
 }
 
 func (c *Client) StopClientLoop() {

@@ -3,10 +3,10 @@
 Module dedicating to encoding and encapsulating messages
 """
 import socket
-import logging
 from common.socket_tcp import SocketTCP
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
 from common.codes import SUCCESS_CODE, ERROR_CODE
+from common.codes import END_MESSAGE
 
 CODE_SIZE = 4
 SIZE_SIZE = 4
@@ -72,6 +72,10 @@ class Protocol:
             }
         if code == BET_MESSAGE:
             return Protocol.__receive_bets(client_sock)
+        if code == END_MESSAGE:
+            return {
+                "code": code
+            }
         raise ValueError("Invalid code")
 
     @staticmethod
@@ -117,6 +121,14 @@ class Protocol:
         Send bet response to the client
         """
         Protocol.__send_message_code(client_sock, SUCCESS_CODE)
+
+    @staticmethod
+    def send_winners(client_sock: socket, winners: int) -> None:
+        """
+        Send winners to the client
+        """
+        Protocol.__send_message_code(client_sock, SUCCESS_CODE)
+        Protocol.__send_message_code(client_sock, winners)
 
     @staticmethod
     def send_bet_response_error(client_sock: socket) -> None:

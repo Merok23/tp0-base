@@ -19,6 +19,7 @@ type Bet struct {
 const (
 	CODE_ECHO    = 1
 	CODE_BET     = 2
+	CODE_END	 = 3
 	CODE_SUCCESS = 200
 	CODE_ERROR   = 400
 )
@@ -85,6 +86,24 @@ func SendBets(conn net.Conn, bets []Bet) error {
 		}
 	}
 	return nil
+}
+
+func SendEnd(conn net.Conn, agencyNumber int) (int, error) {
+	codeBytes := htonl(CODE_END)
+	conn.Write(codeBytes)
+	agencyNumberBytes := htonl(agencyNumber)
+	conn.Write(agencyNumberBytes)
+	// Receive the result
+	resultCodeBytes := make([]byte, 4)
+	conn.Read(resultCodeBytes)
+	resultCode := ntohl(resultCodeBytes)
+	if resultCode != CODE_SUCCESS {
+		return int(resultCode), fmt.Errorf("Error sending end")
+	}
+	winnersBytes := make([]byte, 4)
+	conn.Read(winnersBytes)
+	winners := ntohl(winnersBytes)
+	return int(winners), nil
 }
 
 func ReceiveBet(conn net.Conn) (uint32, error) {

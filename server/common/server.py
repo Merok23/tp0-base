@@ -5,6 +5,7 @@ import sys
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
+from common.codes import END_MESSAGE
 from common.utils import Bet
 from common.utils import store_bets
 
@@ -55,12 +56,21 @@ class Server:
                 self.__handle_echo(client_sock, msg)
             if msg['code'] == BET_MESSAGE:
                 self.__handle_bet(client_sock, msg)
+            if msg['code'] == END_MESSAGE:
+                self.__handle_end_message(client_sock)
         except ValueError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         finally:
             client_sock.close()
+
+    def __handle_end_message(self, client_sock: socket) -> None:
+        """
+        Handle end message from the client
+        """
+        logging.info("action: end_message | result: success")
+        Protocol.send_winners(client_sock, 7)
 
     def __handle_bet(self, client_sock: socket, msg: dict) -> None:
         """

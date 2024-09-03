@@ -18,4 +18,6 @@ FROM busybox:latest
 COPY --from=builder /build/bin/client /client
 COPY ./client/config.yaml /config.yaml
 COPY ./client/common/agency-1.csv /agency-1.csv
+COPY ./client/common/agency-2.csv /agency-2.csv
+COPY ./client/common/agency-3.csv /agency-3.csv
 CMD ["/bin/sh"]
