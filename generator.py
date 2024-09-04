@@ -24,6 +24,11 @@ def generate_docker_compose_file(output_filename: str, num_clients: int) -> None
     environment:
         - CLI_LOG_LEVEL=DEBUG
         - CLI_ID={i}
+        - DNI=30904465
+        - NOMBRE=Santiago Lionel
+        - APELLIDO=Lorca
+        - NACIMIENTO=1999-03-17
+        - NUMERO=7574
     networks:
         - testing_net
     depends_on:
