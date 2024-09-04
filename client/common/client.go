@@ -88,6 +88,42 @@ func checkForErrorsBet(response uint32, err error) bool {
 	return false
 }
 
+func (c *Client) sendLeftOverBets(count int, bets []protocol.Bet) {
+	if count > 0 {
+		c.createClientSocket()
+		err := protocol.SendBets(c.conn, bets)
+		if err != nil {
+			log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		response, err := protocol.ReceiveBet(c.conn)
+		if checkForErrorsBet(response, err) {
+			return
+		}
+		c.conn.Close()
+	}
+}
+
+func (c *Client) waitForLoteryEnd(agencyNumber int) error {
+	c.createClientSocket()
+	response, err := protocol.SendEnd(c.conn, agencyNumber)
+	if err != nil {
+		log.Errorf("action: consulta_ganadores | result: failed | error: %v",
+			err,
+		)
+		return err
+	}
+	log.Infof(
+		"action: consulta_ganadores | result: success | cant_ganadores: %v",
+		response,
+	)
+	c.conn.Close()
+	return nil
+}
+
 func (c *Client) StartClientLoop() {
 	file := os.Getenv("FILE")
 	agencyNumber := strings.TrimPrefix(file, "/agency-")
@@ -144,33 +180,8 @@ func (c *Client) StartClientLoop() {
 			c.conn.Close()
 		}
 	}
-	if count > 0 {
-		c.createClientSocket()
-		err = protocol.SendBets(c.conn, bets)
-		if err != nil {
-			log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-		response, err := protocol.ReceiveBet(c.conn)
-		if checkForErrorsBet(response, err) {
-			return
-		}
-		c.conn.Close()
-	}
-	c.createClientSocket()
-	response, err := protocol.SendEnd(c.conn, number)
-	if err != nil {
-		log.Errorf("action: consulta_ganadores | result: failed")
-		return
-	}
-	log.Infof(
-		"action: consulta_ganadores | result: success | cant_ganadores: %v",
-		response,
-	)
-	c.conn.Close()
+	c.sendLeftOverBets(count, bets)
+	_ = c.waitForLoteryEnd(number)
 }
 
 func (c *Client) StopClientLoop() {

@@ -95,10 +95,14 @@ func SendEnd(conn net.Conn, agencyNumber int) (int, error) {
 	conn.Write(agencyNumberBytes)
 	// Receive the result
 	resultCodeBytes := make([]byte, 4)
-	conn.Read(resultCodeBytes)
+	read, err := conn.Read(resultCodeBytes)
 	resultCode := ntohl(resultCodeBytes)
 	if resultCode != CODE_SUCCESS {
-		return int(resultCode), fmt.Errorf("Error sending end")
+		return int(resultCode), fmt.Errorf(
+			"Error sending end, read %v bytes, error: %v",
+			read,
+			err,
+		)
 	}
 	winnersBytes := make([]byte, 4)
 	conn.Read(winnersBytes)

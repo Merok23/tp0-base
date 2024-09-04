@@ -2,18 +2,23 @@ import socket
 import logging
 import signal
 import sys
+import os
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
 from common.codes import END_MESSAGE
 from common.utils import Bet
 from common.utils import store_bets
+from common.utils import load_bets
+from common.utils import has_won
 
 
 
 class Server:
     def __init__(self, port, listen_backlog):
         self._server_socket = SocketTCP(port, listen_backlog)
+        self._lotery_agencies_done = 0
+        self._clients = {}
 
     def run(self):
         """
@@ -26,9 +31,13 @@ class Server:
 
         signal.signal(signal.SIGINT, self.__handle_shutdown)
         signal.signal(signal.SIGTERM, self.__handle_shutdown)
-        while True:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+        try:
+            while True:
+                client_sock = self.__accept_new_connection()
+                self.__handle_client_connection(client_sock)
+        finally:
+            for client in self._clients.values():
+                client.close()
 
     def __handle_shutdown(self, signum, frame):
         """
@@ -57,20 +66,31 @@ class Server:
             if msg['code'] == BET_MESSAGE:
                 self.__handle_bet(client_sock, msg)
             if msg['code'] == END_MESSAGE:
-                self.__handle_end_message(client_sock)
+                self.__handle_end_message(client_sock, msg)
         except ValueError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
-        finally:
-            client_sock.close()
 
-    def __handle_end_message(self, client_sock: socket) -> None:
+
+    def __handle_end_message(self, client_sock: socket, msg) -> None:
         """
         Handle end message from the client
         """
-        logging.info("action: end_message | result: success")
-        Protocol.send_winners(client_sock, 7)
+        self._lotery_agencies_done += 1
+        self._clients[msg['agency_number']] = client_sock
+        if self._lotery_agencies_done == int(os.environ.get('TOTAL_AGENCIES')):
+            logging.info("action: sorteo | result: success")
+            bets = load_bets()
+            winning_bets = []
+            for bet in bets:
+                if has_won(bet):
+                    winning_bets.append(bet)
+            
+            for client in self._clients.values():
+                Protocol.send_winners(client, 20)
+                client.close()
+            self._clients.clear()
 
     def __handle_bet(self, client_sock: socket, msg: dict) -> None:
         """

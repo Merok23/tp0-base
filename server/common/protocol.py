@@ -73,10 +73,19 @@ class Protocol:
         if code == BET_MESSAGE:
             return Protocol.__receive_bets(client_sock)
         if code == END_MESSAGE:
-            return {
-                "code": code
-            }
+            return Protocol.__receive_end_message(client_sock)
         raise ValueError("Invalid code")
+
+    @staticmethod
+    def __receive_end_message(client_sock: socket) -> dict:
+        """
+        Receive end message from the client
+        """
+        agency_number = Protocol.__receive_uint32(client_sock)
+        return {
+            "code": END_MESSAGE,
+            "agency_number": agency_number
+        }
 
     @staticmethod
     def __receive_variable_string(client_sock: socket) -> str:
