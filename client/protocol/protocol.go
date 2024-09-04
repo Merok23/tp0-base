@@ -42,16 +42,24 @@ func ntohl(b []byte) uint32 {
 func SendEchoMsg(conn net.Conn,  id int, msgID int) error {
 	// Send the code
 	codeBytes := htonl(CODE_ECHO)
-	conn.Write(codeBytes)
+	err := socketTCP.WriteAll(conn, codeBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	// Send the size
 	msg := fmt.Sprintf("[CLIENT %v] Message N°%v", id, msgID)
 	size := len(msg)
 	sizeBytes := htonl(size)
-	conn.Write(sizeBytes)
-
+	err = socketTCP.WriteAll(conn, sizeBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	msgBytes := []byte(msg)
 	// Send the message
-	conn.Write(msgBytes)
+	err = socketTCP.WriteAll(conn, msgBytes, size)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -60,21 +68,45 @@ func SendBet(conn net.Conn, bet Bet) error {
 	// Size of whole message (4 bytes) + SizeDNI (4 bytes).. etc (fixed size header) (This can be sent with the code)
 	// And then we send the data in a single write, the server uses the sizes to read the data (payload)
 	dniBytes := htonl(bet.Dni)
-	conn.Write(dniBytes)
+	err := socketTCP.WriteAll(conn, dniBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	numberBytes := htonl(bet.Number)
-	conn.Write(numberBytes)
+	err = socketTCP.WriteAll(conn, numberBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	dateOfBirthBytes := []byte(bet.DateOfBirth)
-	conn.Write(dateOfBirthBytes) // always size 10 (YYYY-MM-DD)
+	err = socketTCP.WriteAll(conn, dateOfBirthBytes, SIZE_DATE) // always 10 bytes YYYY-MM-DD
+	if err != nil {
+		return err
+	}
 	agencyNumberBytes := htonl(bet.AgencyNumber)
-	conn.Write(agencyNumberBytes)
+	err = socketTCP.WriteAll(conn, agencyNumberBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	nameBytes := []byte(bet.Name)
 	nameBytesSize := htonl(len(nameBytes))
-	conn.Write(nameBytesSize)
-	conn.Write(nameBytes)
+	err = socketTCP.WriteAll(conn, nameBytesSize, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
+	err = socketTCP.WriteAll(conn, nameBytes, len(nameBytes))
+	if err != nil {
+		return err
+	}
 	lastnameBytes := []byte(bet.Lastname)
 	lastnameBytesSize := htonl(len(lastnameBytes))
-	conn.Write(lastnameBytesSize)
-	conn.Write(lastnameBytes)
+	err = socketTCP.WriteAll(conn, lastnameBytesSize, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
+	err = socketTCP.WriteAll(conn, lastnameBytes, len(lastnameBytes))
+	if err != nil {
+		return err
+	}
 	return nil
 }	
 
