@@ -10,7 +10,9 @@ def generate_docker_compose_file(output_filename: str, num_clients: int) -> None
     Generates a docker compose file with N amount of clients.
     """
     with open("server-service.yaml", "r", encoding="utf-8") as server_file:
-        server_string = server_file.read()
+        server_string = server_file\
+            .read()\
+            .replace("TOTAL_AGENCIES=", f"TOTAL_AGENCIES={num_clients}")
     with open("network-tool.yaml", "r", encoding="utf-8") as network_file:
         network_string = network_file.read()
     with open(output_filename, "w", encoding="utf-8") as output:
@@ -24,6 +26,7 @@ def generate_docker_compose_file(output_filename: str, num_clients: int) -> None
     environment:
         - CLI_LOG_LEVEL=DEBUG
         - CLI_ID={i}
+        - FILE=/agency-{i + 1}.csv
     networks:
         - testing_net
     depends_on:
