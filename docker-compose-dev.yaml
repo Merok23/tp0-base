@@ -7,7 +7,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
-      - TOTAL_AGENCIES=3
+      - TOTAL_AGENCIES=5
     networks:
       - testing_net
     volumes:
@@ -51,6 +51,36 @@ services:
         - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=2
         - FILE=/agency-3.csv
+    networks:
+        - testing_net
+    depends_on:
+        - server
+    volumes:
+      - ./client:/config
+
+  client3:
+    container_name: client3
+    image: client:latest
+    entrypoint: /client
+    environment:
+        - CLI_LOG_LEVEL=DEBUG
+        - CLI_ID=3
+        - FILE=/agency-4.csv
+    networks:
+        - testing_net
+    depends_on:
+        - server
+    volumes:
+      - ./client:/config
+
+  client4:
+    container_name: client4
+    image: client:latest
+    entrypoint: /client
+    environment:
+        - CLI_LOG_LEVEL=DEBUG
+        - CLI_ID=4
+        - FILE=/agency-5.csv
     networks:
         - testing_net
     depends_on:
