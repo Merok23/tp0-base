@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"encoding/binary"
 	"net"
+
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/socketTCP"
 )
 
 
@@ -22,6 +24,8 @@ const (
 	CODE_END	 = 3
 	CODE_SUCCESS = 200
 	CODE_ERROR   = 400
+	SIZE_INT_32  = 4
+	SIZE_DATE	= 10
 )
 
 func htonl(value int) []byte {
@@ -76,9 +80,15 @@ func SendBet(conn net.Conn, bet Bet) error {
 
 func SendBets(conn net.Conn, bets []Bet) error {
 	codeBytes := htonl(CODE_BET)
-	conn.Write(codeBytes)
+	err := socketTCP.WriteAll(conn, codeBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	countBytes := htonl(len(bets))
-	conn.Write(countBytes)
+	err = socketTCP.WriteAll(conn, countBytes, SIZE_INT_32)
+	if err != nil {
+		return err
+	}
 	for _, bet := range bets {
 		err := SendBet(conn, bet)
 		if err != nil {
@@ -90,30 +100,44 @@ func SendBets(conn net.Conn, bets []Bet) error {
 
 func SendEnd(conn net.Conn, agencyNumber int) (int, []int, int, error) {
 	codeBytes := htonl(CODE_END)
-	conn.Write(codeBytes)
+	err := socketTCP.WriteAll(conn, codeBytes, SIZE_INT_32)
+	if err != nil {
+		return 0, nil, 0, err
+	}
 	agencyNumberBytes := htonl(agencyNumber)
-	conn.Write(agencyNumberBytes)
+	err = socketTCP.WriteAll(conn, agencyNumberBytes, SIZE_INT_32)
+	if err != nil {
+		return 0, nil, 0, err
+	}
 	// Receive the result
-	resultCodeBytes := make([]byte, 4)
-	read, err := conn.Read(resultCodeBytes)
+	resultCodeBytes := make([]byte, SIZE_INT_32)
+	err = socketTCP.ReadAll(conn, resultCodeBytes, SIZE_INT_32)
 	resultCode := ntohl(resultCodeBytes)
 	if resultCode != CODE_SUCCESS {
 		return int(resultCode), nil, 0, fmt.Errorf(
-			"Error sending end, read %v bytes, error: %v",
-			read,
+			"Error sending end, error: %v",
 			err,
 		)
 	}
-	winnersBytes := make([]byte, 4)
-	conn.Read(winnersBytes)
+	winnersBytes := make([]byte, SIZE_INT_32)
+	err = socketTCP.ReadAll(conn, winnersBytes, SIZE_INT_32)
+	if err != nil {
+		return 0, nil, 0, err
+	}
 	winners := ntohl(winnersBytes)
-	dnisLenBytes := make([]byte, 4)
-	conn.Read(dnisLenBytes)
+	dnisLenBytes := make([]byte, SIZE_INT_32)
+	err = socketTCP.ReadAll(conn, dnisLenBytes, SIZE_INT_32)
+	if err != nil {
+		return 0, nil, 0, err
+	}
 	dnisLen := ntohl(dnisLenBytes)
 	dniWinners := make([]int, dnisLen)
 	for i := 0; i < int(dnisLen); i++ {
-		dniBytes := make([]byte, 4)
-		conn.Read(dniBytes)
+		dniBytes := make([]byte, SIZE_INT_32)
+		err = socketTCP.ReadAll(conn, dniBytes, SIZE_INT_32)
+		if err != nil {
+			return 0, nil, 0, err
+		}
 		dni := ntohl(dniBytes)
 		dniWinners[i] = int(dni)
 	}
@@ -121,20 +145,29 @@ func SendEnd(conn net.Conn, agencyNumber int) (int, []int, int, error) {
 }
 
 func ReceiveBet(conn net.Conn) (uint32, error) {
-	resultCodeBytes := make([]byte, 4)
-	conn.Read(resultCodeBytes)
+	resultCodeBytes := make([]byte, SIZE_INT_32)
+	err := socketTCP.ReadAll(conn, resultCodeBytes, SIZE_INT_32)
+	if err != nil {
+		return 0, err
+	}
 	resultCode := ntohl(resultCodeBytes)
 	return resultCode, nil
 }
 
 func ReceiveEchoMsg(conn net.Conn, id int) (string, error) {
 	// Read the size
-	sizeBytes := make([]byte, 4)
-	conn.Read(sizeBytes)
+	sizeBytes := make([]byte, SIZE_INT_32)
+	err := socketTCP.ReadAll(conn, sizeBytes, SIZE_INT_32)
+	if err != nil {
+		return "", err
+	}
 	size := ntohl(sizeBytes)
 	// Read the message
 	msgBytes := make([]byte, size)
-	conn.Read(msgBytes)
+	err = socketTCP.ReadAll(conn, msgBytes, int(size))
+	if err != nil {
+		return "", err
+	}
 	msg := string(msgBytes)
 	return msg, nil
 }
