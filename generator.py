@@ -16,7 +16,7 @@ def generate_docker_compose_file(output_filename: str, num_clients: int) -> None
     print("\033[92mGenerating docker compose file...\033[0m")
     with open(output_filename, "w", encoding="utf-8") as output_file:
         output_file.write(server_string)
-        for i in range(num_clients):
+        for i in range(1, num_clients + 1):
             client_string = f"""
   client{i}:
     container_name: client{i}
