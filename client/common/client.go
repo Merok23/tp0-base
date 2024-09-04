@@ -109,7 +109,7 @@ func (c *Client) sendLeftOverBets(count int, bets []protocol.Bet) {
 
 func (c *Client) waitForLoteryEnd(agencyNumber int) error {
 	c.createClientSocket()
-	response, err := protocol.SendEnd(c.conn, agencyNumber)
+	winnersCount, _, _, err := protocol.SendEnd(c.conn, agencyNumber)
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: failed | error: %v",
 			err,
@@ -118,7 +118,7 @@ func (c *Client) waitForLoteryEnd(agencyNumber int) error {
 	}
 	log.Infof(
 		"action: consulta_ganadores | result: success | cant_ganadores: %v",
-		response,
+		winnersCount,
 	)
 	c.conn.Close()
 	return nil

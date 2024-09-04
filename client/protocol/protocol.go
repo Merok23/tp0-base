@@ -88,7 +88,7 @@ func SendBets(conn net.Conn, bets []Bet) error {
 	return nil
 }
 
-func SendEnd(conn net.Conn, agencyNumber int) (int, error) {
+func SendEnd(conn net.Conn, agencyNumber int) (int, []int, int, error) {
 	codeBytes := htonl(CODE_END)
 	conn.Write(codeBytes)
 	agencyNumberBytes := htonl(agencyNumber)
@@ -98,7 +98,7 @@ func SendEnd(conn net.Conn, agencyNumber int) (int, error) {
 	read, err := conn.Read(resultCodeBytes)
 	resultCode := ntohl(resultCodeBytes)
 	if resultCode != CODE_SUCCESS {
-		return int(resultCode), fmt.Errorf(
+		return int(resultCode), nil, 0, fmt.Errorf(
 			"Error sending end, read %v bytes, error: %v",
 			read,
 			err,
@@ -107,7 +107,17 @@ func SendEnd(conn net.Conn, agencyNumber int) (int, error) {
 	winnersBytes := make([]byte, 4)
 	conn.Read(winnersBytes)
 	winners := ntohl(winnersBytes)
-	return int(winners), nil
+	dnisLenBytes := make([]byte, 4)
+	conn.Read(dnisLenBytes)
+	dnisLen := ntohl(dnisLenBytes)
+	dniWinners := make([]int, dnisLen)
+	for i := 0; i < int(dnisLen); i++ {
+		dniBytes := make([]byte, 4)
+		conn.Read(dniBytes)
+		dni := ntohl(dniBytes)
+		dniWinners[i] = int(dni)
+	}
+	return int(winners), dniWinners, int(dnisLen), nil
 }
 
 func ReceiveBet(conn net.Conn) (uint32, error) {

@@ -129,22 +129,25 @@ class Protocol:
         """
         Send bet response to the client
         """
-        Protocol.__send_message_code(client_sock, SUCCESS_CODE)
+        Protocol.__send_uint32(client_sock, SUCCESS_CODE)
 
     @staticmethod
-    def send_winners(client_sock: socket, winners: int) -> None:
+    def send_winners(client_sock: socket, winners: int, dnis: list) -> None:
         """
         Send winners to the client
         """
-        Protocol.__send_message_code(client_sock, SUCCESS_CODE)
-        Protocol.__send_message_code(client_sock, winners)
+        Protocol.__send_uint32(client_sock, SUCCESS_CODE)
+        Protocol.__send_uint32(client_sock, winners)
+        Protocol.__send_uint32(client_sock, len(dnis))
+        for dni in dnis:
+            Protocol.__send_uint32(client_sock, int(dni))
 
     @staticmethod
     def send_bet_response_error(client_sock: socket) -> None:
         """
         Send bet response to the client
         """
-        Protocol.__send_message_code(client_sock, ERROR_CODE)
+        Protocol.__send_uint32(client_sock, ERROR_CODE)
 
     @staticmethod
     def __send_message(client_sock: socket, message: str) -> None:
@@ -157,14 +160,14 @@ class Protocol:
         SocketTCP.send_all(client_sock, size, encoded_message)
 
     @staticmethod
-    def __send_message_code(client_sock: socket, code: int) -> None:
+    def __send_uint32(client_sock: socket, code: int) -> None:
         """
         Send message code to the client
         """
         SocketTCP.send_all(
             client_sock,
-            CODE_SIZE,
-            code.to_bytes(CODE_SIZE, byteorder='big', signed=False)
+            4,
+            code.to_bytes(4, byteorder='big', signed=False)
         )
 
     @staticmethod

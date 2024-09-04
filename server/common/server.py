@@ -82,14 +82,19 @@ class Server:
         if self._lotery_agencies_done == int(os.environ.get('TOTAL_AGENCIES')):
             logging.info("action: sorteo | result: success")
             bets = load_bets()
-            winning_bets = []
+            winning_count = {}
+            winning_dnis = []
             for bet in bets:
                 if has_won(bet):
-                    winning_bets.append(bet)
-            
-            for client in self._clients.values():
-                Protocol.send_winners(client, 20)
-                client.close()
+                    winning_count[bet.agency] = winning_count.get(bet.agency, 0) + 1
+                    winning_dnis.append(bet.document)
+            for agency, agency_socket in self._clients.items():
+                Protocol.send_winners(
+                    agency_socket,
+                    winning_count.get(agency, 0),
+                    winning_dnis
+                )
+                agency_socket.close()
             self._clients.clear()
 
     def __handle_bet(self, client_sock: socket, msg: dict) -> None:
