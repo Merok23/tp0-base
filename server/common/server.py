@@ -32,7 +32,7 @@ class Server:
         """
         self._server_socket.close()
         sig_name = signal.Signals(signum)
-        logging.info("action: exit | result: success | %s", sig_name.name)
+        logging.info("action: exit | result: success")
         sys.exit(0)
 
     def __handle_client_connection(self, client_sock):

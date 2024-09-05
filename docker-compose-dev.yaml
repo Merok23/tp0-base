@@ -5,20 +5,18 @@ services:
     image: server:latest
     entrypoint: python3 server/main.py
     environment:
-      - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
     volumes:
       - ./server:/server
 
-  client0:
-    container_name: client0
+  client1:
+    container_name: client1
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
-        - CLI_ID=0
+        - CLI_ID=1
     networks:
         - testing_net
     depends_on:
@@ -30,5 +28,3 @@ networks:
   testing_net:
     ipam:
       driver: default
-      config:
-        - subnet: 172.25.125.0/24
