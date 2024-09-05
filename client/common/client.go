@@ -23,6 +23,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
+	finished bool = false
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -40,6 +41,9 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
+		if c.finished {
+			return nil
+		}
 		log.Criticalf(
 			"action: connect | result: fail | client_id: %v | error: %v",
 			c.config.ID,
@@ -57,7 +61,9 @@ func (c *Client) StartClientLoop() {
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
-
+		if c.finished {
+			return
+		}
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
 			c.conn,
@@ -90,4 +96,5 @@ func (c *Client) StartClientLoop() {
 
 func (c *Client) StopClientLoop() {
 	c.conn.Close()
+	c.finished = true
 }
