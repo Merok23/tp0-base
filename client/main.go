@@ -118,18 +118,11 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	done := make(chan bool, 1)
-
 	go func() {
-		client.StartClientLoop()
-		done <- true
+		<-sigs
+		log.Infof("action: exit | result: success | message: SIGINT received")
+		client.StopClientLoop()
+		os.Exit(0)
 	}()
-
-	select {
-		case <-done:
-			log.Infof("action: exit | result: success | message: Client loop finished")
-		case <-sigs:
-			log.Infof("action: exit | result: success | message: SIGINT received")
-			client.StopClientLoop()
-	}
+	client.StartClientLoop()
 }
