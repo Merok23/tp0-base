@@ -3,6 +3,7 @@ import logging
 import signal
 import sys
 import os
+import threading
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
@@ -19,6 +20,9 @@ class Server:
         self._server_socket = SocketTCP(port, listen_backlog)
         self._lotery_agencies_done = 0
         self._clients = {}
+        self._client_threads = []
+        self._client_sockets = []
+        self._server_lock = threading.Lock()
 
     def run(self):
         """
@@ -33,11 +37,30 @@ class Server:
         signal.signal(signal.SIGTERM, self.__handle_shutdown)
         try:
             while True:
+                self.__reap_dead_threads()
                 client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                client_thread = threading.Thread(
+                    target=self.__handle_client_connection,
+                    args=(client_sock,)
+                )
+                client_thread.start()
+                self._client_sockets.append(client_sock)
+                self._client_threads.append(client_thread)
         finally:
-            for client in self._clients.values():
-                client.close()
+            for client in self._client_sockets:
+                client.close() ## This unblocks any waiting threads
+            self._server_socket.close()
+            for thread in self._client_threads:
+                thread.join()
+            self.__reap_dead_threads()
+
+    def __reap_dead_threads(self):
+        """
+        Reap dead threads
+        """
+        for thread in self._client_threads:
+            if not thread.is_alive():
+                self._client_threads.remove(thread)
 
     def __handle_shutdown(self, signum, frame):
         """
@@ -77,25 +100,26 @@ class Server:
         """
         Handle end message from the client
         """
-        self._lotery_agencies_done += 1
-        self._clients[msg['agency_number']] = client_sock
-        if self._lotery_agencies_done == int(os.environ.get('TOTAL_AGENCIES')):
-            logging.info("action: sorteo | result: success")
-            bets = load_bets()
-            winning_count = {}
-            winning_dnis = []
-            for bet in bets:
-                if has_won(bet):
-                    winning_count[bet.agency] = winning_count.get(bet.agency, 0) + 1
-                    winning_dnis.append(bet.document)
-            for agency, agency_socket in self._clients.items():
-                Protocol.send_winners(
-                    agency_socket,
-                    winning_count.get(agency, 0),
-                    winning_dnis
-                )
-                agency_socket.close()
-            self._clients.clear()
+        with self._server_lock:
+            self._lotery_agencies_done += 1
+            self._clients[msg['agency_number']] = client_sock
+            if self._lotery_agencies_done == int(os.environ.get('TOTAL_AGENCIES')):
+                logging.info("action: sorteo | result: success")
+                bets = load_bets()
+                winning_count = {}
+                winning_dnis = []
+                for bet in bets:
+                    if has_won(bet):
+                        winning_count[bet.agency] = winning_count.get(bet.agency, 0) + 1
+                        winning_dnis.append(bet.document)
+                for agency, agency_socket in self._clients.items():
+                    Protocol.send_winners(
+                        agency_socket,
+                        winning_count.get(agency, 0),
+                        winning_dnis
+                    )
+                    agency_socket.close()
+                self._clients.clear()
 
     def __handle_bet(self, client_sock: socket, msg: dict) -> None:
         """
@@ -117,11 +141,12 @@ class Server:
                 bet['date_of_birth'],
                 bet['number'],
             ))
-        store_bets(bets)
-        logging.info(
-            "action: apuesta_recibida | result: success | cantidad: %d",
-            len(bets)
-        )
+        with self._server_lock:
+            store_bets(bets)
+            logging.info(
+                "action: apuesta_recibida | result: success | cantidad: %d",
+                len(bets)
+            )
         Protocol.send_bet_response_succesful(client_sock)
 
     def __handle_echo(self, client_sock: socket, msg: dict) -> None:
