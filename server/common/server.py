@@ -1,9 +1,8 @@
 import socket
 import logging
 import signal
-import sys
 import os
-import threading
+import threading # TODO: Ver de cambiar por multithreading
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
@@ -17,6 +16,7 @@ from common.utils import has_won
 
 class Server:
     def __init__(self, port, listen_backlog):
+        self._running = True
         self._server_socket = SocketTCP(port, listen_backlog)
         self._lotery_agencies_done = 0
         self._clients = {}
@@ -36,9 +36,13 @@ class Server:
         signal.signal(signal.SIGINT, self.__handle_shutdown)
         signal.signal(signal.SIGTERM, self.__handle_shutdown)
         try:
-            while True:
+            while self._running:
                 self.__reap_dead_threads()
-                client_sock = self.__accept_new_connection()
+                try:
+                    client_sock = self.__accept_new_connection()
+                except OSError:
+                    if not self._running:
+                        break
                 client_thread = threading.Thread(
                     target=self.__handle_client_connection,
                     args=(client_sock,)
@@ -70,10 +74,10 @@ class Server:
             "action: shutdown_server | result: in_progress | frame: %s",
             frame.f_code.co_name
         )
+        self._running = False
         self._server_socket.close()
         sig_name = signal.Signals(signum)
         logging.info("action: shutdown_server | result: success | %s", sig_name.name)
-        sys.exit(0)
 
     def __handle_client_connection(self, client_sock: socket) -> None:
         """
@@ -111,7 +115,7 @@ class Server:
                 for bet in bets:
                     if has_won(bet):
                         winning_count[bet.agency] = winning_count.get(bet.agency, 0) + 1
-                        winning_dnis.append(bet.document)
+                        winning_dnis.append(bet.document) # TODO: agregar que sea POR agencia y no global.
                 for agency, agency_socket in self._clients.items():
                     Protocol.send_winners(
                         agency_socket,

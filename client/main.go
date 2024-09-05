@@ -123,7 +123,6 @@ func main() {
 		<-sigs
 		log.Infof("action: signal | result: success | message: SIGINT received")
 		client.StopClientLoop()
-		os.Exit(0)
 	}()
 	client.StartClientLoop()
 }

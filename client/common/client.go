@@ -27,6 +27,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
+	finished bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -34,6 +35,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		finished: false,
 	}
 	return client
 }
@@ -134,13 +136,13 @@ func (c *Client) StartClientLoop() {
 			c.config.ID,
 			err,
 		)
-		number = 1
+		return
 	}
 	f, err := os.Open(file)
 	if err != nil {
 		log.Errorf("action: open_file | result: fail | client_id: %v | error: %v",
-		c.config.ID,
-		err,
+			c.config.ID,
+			err,
 		)
 		return
 	}
@@ -154,16 +156,22 @@ func (c *Client) StartClientLoop() {
 		bet, err := createBetFromLine(line, number)
 		if err != nil {
 			log.Errorf("action: create_bet | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
-	}
-	bets = append(bets, bet)
-	count++
-	if count >= c.config.Batch {
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		bets = append(bets, bet)
+		count++
+		if count >= c.config.Batch {
+			if c.finished {
+				return
+			}
 			c.createClientSocket()
 			err = protocol.SendBets(c.conn, bets)
+			if c.finished {
+				return
+			}
 			if err != nil {
 				log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
 					c.config.ID,
@@ -180,10 +188,17 @@ func (c *Client) StartClientLoop() {
 			c.conn.Close()
 		}
 	}
+	if c.finished {
+		return
+	}
 	c.sendLeftOverBets(count, bets)
+	if c.finished {
+		return
+	}
 	_ = c.waitForLoteryEnd(number)
 }
 
 func (c *Client) StopClientLoop() {
 	c.conn.Close()
+	c.finished = true
 }
