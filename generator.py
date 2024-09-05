@@ -24,9 +24,8 @@ def generate_docker_compose_file(output_filename: str, num_clients: int) -> None
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
         - CLI_ID={i}
-        - FILE=/agency-{i + 1}.csv
+        - FILE=/agency-{i}.csv
     networks:
         - testing_net
     depends_on:

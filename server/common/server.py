@@ -49,7 +49,6 @@ class Server:
         finally:
             for client in self._client_sockets:
                 client.close() ## This unblocks any waiting threads
-            self._server_socket.close()
             for thread in self._client_threads:
                 thread.join()
             self.__reap_dead_threads()

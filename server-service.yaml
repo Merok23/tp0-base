@@ -6,7 +6,6 @@ services:
     entrypoint: python3 server/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
       - TOTAL_AGENCIES=
     networks:
       - testing_net
