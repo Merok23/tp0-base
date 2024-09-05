@@ -120,7 +120,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		log.Infof("action: signal | result: success | message: SIGINT received")
+		log.Infof("action: exit | result: success | message: SIGINT received")
 		client.StopClientLoop()
 		os.Exit(0)
 	}()
