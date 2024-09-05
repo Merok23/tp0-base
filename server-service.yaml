@@ -5,7 +5,6 @@ services:
     image: server:latest
     entrypoint: python3 server/main.py
     environment:
-      - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
