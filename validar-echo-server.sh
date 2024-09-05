@@ -3,7 +3,7 @@ docker network connect tp0_net server
 input="hola"
 response=$(echo "$input" | docker run --network tp0_net -i client:latest sh -c 'nc server 12345')
 echo "Response: $response"
-if [ "$input" == "$response" ]; then
+if [ "$input" = "$response" ]; then
   echo "action: test_echo_server | result: success"
 else
   echo "action: test_echo_server | result: fail"
