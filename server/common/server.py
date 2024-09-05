@@ -58,8 +58,9 @@ class Server:
         """
         Reap dead threads
         """
-        for thread in self._client_threads:
+        for thread in self._client_threads.copy():
             if not thread.is_alive():
+                thread.join()
                 self._client_threads.remove(thread)
 
     def __handle_shutdown(self, signum, frame):
