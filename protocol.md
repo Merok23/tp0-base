@@ -26,6 +26,17 @@ After the code, the client will send:
 
 The server will try to store the bet, if it does, it will respond with a success code, otherwise it will respond with an error code.
 
+### END
+- Code: 3
+- Agency (4 bytes)
+
+Then, the client will wait until the lotery is finished, and the server will respond with:
+
+- Code: 200
+- Winners (4 bytes)
+- DNI Length (4 bytes)
+- DNI (4 bytes) x DNI Length
+
 ### SUCCESS
 - Code: 200
 
