@@ -81,25 +81,31 @@ class Server:
 
     def __handle_client_connection(self, client_sock: socket) -> None:
         """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
+        Handles a connection with a single client until the client disconnects.
         """
-        try:
-            msg = Protocol.receive_client_message(client_sock)
-            if msg['code'] == ECHO_MESSAGE:
-                self.__handle_echo(client_sock, msg)
-            if msg['code'] == BET_MESSAGE:
-                self.__handle_bet(client_sock, msg)
-            if msg['code'] == END_MESSAGE:
-                self.__handle_end_message(client_sock, msg)
-        except ValueError as e:
-            logging.error("action: receive_message | result: fail | error: %s", format(e))
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: %s", format(e))
-        except RuntimeError as e:
-            logging.error("action: receive_message | result: fail | error: %s", format(e))
+        connected = True
+        while connected:
+            try:
+                msg = Protocol.receive_client_message(client_sock)
+                if msg['code'] == ECHO_MESSAGE:
+                    self.__handle_echo(client_sock, msg)
+                if msg['code'] == BET_MESSAGE:
+                    self.__handle_bet(client_sock, msg)
+                if msg['code'] == END_MESSAGE:
+                    self.__handle_end_message(client_sock, msg)
+                    # because the client it's already on the sending list, nothing to do here.
+                    connected = False
+            except ValueError as e:
+                if not connected:
+                    break
+                logging.error("action: receive_message | result: fail | error: %s", format(e))
+                connected = False
+            except OSError as e:
+                logging.error("action: receive_message | result: fail | error: %s", format(e))
+                connected = False
+            except RuntimeError as e:
+                logging.error("action: receive_message | result: fail | error: %s", format(e))
+                connected = False
 
     def __handle_end_message(self, client_sock: socket, msg) -> None:
         """

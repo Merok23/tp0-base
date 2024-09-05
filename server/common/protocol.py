@@ -74,7 +74,7 @@ class Protocol:
             return Protocol.__receive_bets(client_sock)
         if code == END_MESSAGE:
             return Protocol.__receive_end_message(client_sock)
-        raise ValueError("Invalid code")
+        raise ValueError(f"Invalid code {code}")
 
     @staticmethod
     def __receive_end_message(client_sock: socket) -> dict:

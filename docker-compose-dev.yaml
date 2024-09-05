@@ -6,36 +6,19 @@ services:
     entrypoint: python3 server/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
       - TOTAL_AGENCIES=5
     networks:
       - testing_net
     volumes:
       - ./server:/server
 
-  client0:
-    container_name: client0
-    image: client:latest
-    entrypoint: /client
-    environment:
-        - CLI_LOG_LEVEL=DEBUG
-        - CLI_ID=0
-        - FILE=/agency-1.csv
-    networks:
-        - testing_net
-    depends_on:
-        - server
-    volumes:
-      - ./client:/config
-
   client1:
     container_name: client1
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=1
-        - FILE=/agency-2.csv
+        - FILE=/agency-1.csv
     networks:
         - testing_net
     depends_on:
@@ -48,9 +31,8 @@ services:
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=2
-        - FILE=/agency-3.csv
+        - FILE=/agency-2.csv
     networks:
         - testing_net
     depends_on:
@@ -63,9 +45,8 @@ services:
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=3
-        - FILE=/agency-4.csv
+        - FILE=/agency-3.csv
     networks:
         - testing_net
     depends_on:
@@ -78,8 +59,21 @@ services:
     image: client:latest
     entrypoint: /client
     environment:
-        - CLI_LOG_LEVEL=DEBUG
         - CLI_ID=4
+        - FILE=/agency-4.csv
+    networks:
+        - testing_net
+    depends_on:
+        - server
+    volumes:
+      - ./client:/config
+
+  client5:
+    container_name: client5
+    image: client:latest
+    entrypoint: /client
+    environment:
+        - CLI_ID=5
         - FILE=/agency-5.csv
     networks:
         - testing_net

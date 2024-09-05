@@ -90,9 +90,8 @@ func checkForErrorsBet(response uint32, err error) bool {
 	return false
 }
 
-func (c *Client) sendLeftOverBets(count int, bets []protocol.Bet) {
+func (c *Client) sendLeftOverBets(count int, bets []protocol.Bet, conn net.Conn) {
 	if count > 0 {
-		c.createClientSocket()
 		err := protocol.SendBets(c.conn, bets)
 		if err != nil {
 			log.Errorf("action: send_bets | result: fail | client_id: %v | error: %v",
@@ -105,12 +104,10 @@ func (c *Client) sendLeftOverBets(count int, bets []protocol.Bet) {
 		if checkForErrorsBet(response, err) {
 			return
 		}
-		c.conn.Close()
 	}
 }
 
-func (c *Client) waitForLoteryEnd(agencyNumber int) error {
-	c.createClientSocket()
+func (c *Client) waitForLoteryEnd(agencyNumber int, conn net.Conn) error {
 	winnersCount, _, _, err := protocol.SendEnd(c.conn, agencyNumber)
 	if err != nil {
 		log.Errorf("action: consulta_ganadores | result: failed | error: %v",
@@ -122,12 +119,12 @@ func (c *Client) waitForLoteryEnd(agencyNumber int) error {
 		"action: consulta_ganadores | result: success | cant_ganadores: %v",
 		winnersCount,
 	)
-	c.conn.Close()
 	return nil
 }
 
 func (c *Client) StartClientLoop() {
 	file := os.Getenv("FILE")
+	c.createClientSocket()
 	agencyNumber := strings.TrimPrefix(file, "/agency-")
 	agencyNumber = strings.TrimSuffix(agencyNumber, ".csv")
 	number, err := strconv.Atoi(agencyNumber)
@@ -147,6 +144,7 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 	defer f.Close()
+	defer c.conn.Close()
 	
 	scanner := bufio.NewScanner(f)
 	count := 0
@@ -167,7 +165,6 @@ func (c *Client) StartClientLoop() {
 			if c.finished {
 				return
 			}
-			c.createClientSocket()
 			err = protocol.SendBets(c.conn, bets)
 			if c.finished {
 				return
@@ -185,17 +182,16 @@ func (c *Client) StartClientLoop() {
 			}
 			count = 0
 			bets = []protocol.Bet{}
-			c.conn.Close()
 		}
 	}
 	if c.finished {
 		return
 	}
-	c.sendLeftOverBets(count, bets)
+	c.sendLeftOverBets(count, bets, c.conn)
 	if c.finished {
 		return
 	}
-	_ = c.waitForLoteryEnd(number)
+	_ = c.waitForLoteryEnd(number, c.conn)
 }
 
 func (c *Client) StopClientLoop() {
