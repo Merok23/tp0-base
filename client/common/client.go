@@ -72,6 +72,9 @@ func (c *Client) StartClientLoop() {
 			msgID,
 		)
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
+		if c.finished {
+			return
+		}
 		c.conn.Close()
 
 		if err != nil {
