@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 import os
-import threading # TODO: Ver de cambiar por multithreading
+import threading # TODO: Ver de cambiar por multi processing
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
@@ -98,7 +98,8 @@ class Server:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: %s", format(e))
-
+        except RuntimeError as e:
+            logging.error("action: receive_message | result: fail | error: %s", format(e))
 
     def __handle_end_message(self, client_sock: socket, msg) -> None:
         """
