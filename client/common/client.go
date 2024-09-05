@@ -62,20 +62,27 @@ func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
 		if c.finished {
 			return
 		}
+		// Create the connection the server in every loop iteration. Send an
+		err = c.createClientSocket()
+		if err != nil || c.finished {
+			return
+		}
+		
 		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
+		err := fmt.Fprintf(
 			c.conn,
 			"[CLIENT %v] Message N°%v\n",
 			c.config.ID,
 			msgID,
 		)
+		if err != nil || c.finished {
+			return
+		}
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		if c.finished {
+		if c.finished || c.finished {
 			return
 		}
 		c.conn.Close()
