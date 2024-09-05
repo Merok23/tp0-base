@@ -39,6 +39,9 @@ func NewClient(config ClientConfig) *Client {
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
 func (c *Client) createClientSocket() error {
+	if c.finished {
+		return nil
+	}
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
 		if c.finished {
