@@ -10,6 +10,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._running = True
 
     def run(self):
         """
@@ -22,8 +23,12 @@ class Server:
 
         signal.signal(signal.SIGINT, self.__handle_shutdown)
         signal.signal(signal.SIGTERM, self.__handle_shutdown)
-        while True:
-            client_sock = self.__accept_new_connection()
+        while self._running:
+            try:
+                client_sock = self.__accept_new_connection()
+            except OSError:
+                if not self._running:
+                    break
             self.__handle_client_connection(client_sock)
 
     def __handle_shutdown(self, signum, frame):
@@ -31,9 +36,8 @@ class Server:
         Handle server shutdown gracefully
         """
         self._server_socket.close()
-        sig_name = signal.Signals(signum)
+        self._running = False
         logging.info("action: exit | result: success")
-        sys.exit(0)
 
     def __handle_client_connection(self, client_sock):
         """
