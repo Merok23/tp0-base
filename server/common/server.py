@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 import os
-import threading # TODO: Ver de cambiar por multi processing
+import threading
 from common.socket_tcp import SocketTCP
 from common.protocol import Protocol
 from common.codes import ECHO_MESSAGE, BET_MESSAGE
@@ -118,16 +118,16 @@ class Server:
                 logging.info("action: sorteo | result: success")
                 bets = load_bets()
                 winning_count = {}
-                winning_dnis = []
+                winning_dnis = {}
                 for bet in bets:
                     if has_won(bet):
                         winning_count[bet.agency] = winning_count.get(bet.agency, 0) + 1
-                        winning_dnis.append(bet.document) # TODO: agregar que sea POR agencia y no global.
+                        winning_dnis[bet.agency] = winning_dnis.get(bet.agency, []) + [bet.document]
                 for agency, agency_socket in self._clients.items():
                     Protocol.send_winners(
                         agency_socket,
                         winning_count.get(agency, 0),
-                        winning_dnis
+                        winning_dnis.get(agency, []),
                     )
                     agency_socket.close()
                 self._clients.clear()
